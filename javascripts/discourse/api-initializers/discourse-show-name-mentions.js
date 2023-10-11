@@ -7,7 +7,7 @@ let pendingSearch;
 
 async function deferSearch(username) {
   pendingSearch = {
-    search: new Promise((resolve, reject) => {
+    search: new Promise((resolve) => {
       setTimeout(async () => {
         const searchedUsernames = Array.from(pendingSearch.usernames);
         pendingSearch = null;
@@ -48,10 +48,21 @@ async function searchUsername(username) {
   return deferSearch(username);
 }
 
-async function updateMention(domNode, username) {
+function updateCachedNames(username, model) {
+  const user = model?.mentioned_users?.find(user => user.username.toLowerCase() === username);
+
+  if (user) {
+    cachedNames.set(username, user.name)
+  }
+}
+
+async function updateMention(domNode, mention, model) {
+  const username = mention.toLowerCase().replace(/^@/, "")
+  updateCachedNames(username, model);
+
   const search = cachedNames.has(username)
     ? Promise.resolve(cachedNames.get(username))
-    : searchUsername(username.toLowerCase().substring(1));
+    : searchUsername(username);
 
   const fullName = await search;
   console.log(username, fullName)
@@ -69,22 +80,26 @@ export default apiInitializer("0.8", (api) => {
   api.decorateCookedElement((element, helper) => {
     const selector = settings.show_fullname_for_groups ? "a.mention,a.mention-group" : "a.mention";
     const mentions = element.querySelectorAll(selector);
-    console.log({helper: helper, model: helper?.getModel()})
 
-    mentions.forEach((aMention) => {
-      if (aMention.dataset.originalMention) {
+    mentions.forEach((domNode) => {
+      if (domNode.dataset.originalMention) {
         // the element is already changed
         return;
       }
 
-      const username = aMention.innerText;
-      updateMention(aMention, username);
+      const username = domNode.innerText;
+      updateMention(domNode, username, helper?.getModel());
     });
   }, {
     id: "show-named-mentions",
   });
 
-  ["component:user-card-contents", "component:group-card-contents"].forEach((component) => {
+  const cardComponents = ["component:user-card-contents"];
+  if (settings.show_fullname_for_groups) {
+    cardComponents.push("component:group-card-contents");
+  }
+
+  cardComponents.forEach((component) => {
     api.modifyClass(component, {
       pluginId: "show-named-mentions",
 
