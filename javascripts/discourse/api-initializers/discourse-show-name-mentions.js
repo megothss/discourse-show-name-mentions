@@ -65,7 +65,6 @@ async function updateMention(domNode, mention, model) {
     : searchUsername(username);
 
   const fullName = await search;
-  console.log(username, fullName)
 
   if (fullName) {
     domNode.dataset.originalMention = username;
