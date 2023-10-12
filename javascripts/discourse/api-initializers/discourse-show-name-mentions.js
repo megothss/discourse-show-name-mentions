@@ -1,98 +1,44 @@
-import {bind} from "discourse-common/utils/decorators";
-import {ajax} from "discourse/lib/ajax";
-import {apiInitializer} from "discourse/lib/api";
+import { bind } from "discourse-common/utils/decorators";
+import { withPluginApi } from "discourse/lib/plugin-api";
+import { updateMentionElement } from "../lib/update-dom-mention";
 
-const cachedNames = new Map();
-let pendingSearch;
+export default {
+  name: "discourse-show-name-mentions",
 
-async function deferSearch(username) {
-  pendingSearch = {
-    search: new Promise((resolve) => {
-      setTimeout(async () => {
-        const searchedUsernames = Array.from(pendingSearch.usernames);
-        pendingSearch = null;
+  initialize(container, app) {
+    const siteSettings = container.lookup("service:site-settings");
 
-        const data = await ajax("/u/search/users.json", {
-          data: {usernames: searchedUsernames.join(","), include_groups: settings.show_fullname_for_groups},
-        });
-
-        resolve({searchedUsernames, data});
-      }, 20);
-    }), usernames: new Set([username])
-  }
-
-  // the call to searchUsername will use the existing pending promise and filter the results
-  return await searchUsername(username);
-}
-
-async function searchUsername(username) {
-  const pending = pendingSearch;
-
-  if (pending && pending.usernames.size <= 50) { //only 50 usernames can be searched at once
-    pending.usernames.add(username);
-    const results = await pending.search;
-
-    // tests if the search performed included the desired username to prevent  from a possible race condition with
-    // the timeout in deferred search
-    if (results.searchedUsernames.indexOf(username) > -1) {
-      const fullName = results.data.users?.find(item => item.username === username)?.name
-        || results.data.groups?.find(item => item.name === username)?.full_name;
-
-      cachedNames.set(username, fullName);
-
-      return fullName;
+    if (!settings.show_fullname_in_mentions || !siteSettings.enable_names) {
+      return;
     }
-  }
 
-  // in case we can't use the existing the deferred search let's create another one
-  return deferSearch(username);
-}
+    withPluginApi("0.8", (api) => {
+      updateCookedMentions(api);
+      patchCardComponents(api);
+    });
+  },
+};
 
-function updateCachedNames(username, model) {
-  const user = model?.mentioned_users?.find(user => user.username.toLowerCase() === username);
-
-  if (user) {
-    cachedNames.set(username, user.name)
-  }
-}
-
-async function updateMention(domNode, mention, model) {
-  const username = mention.toLowerCase().replace(/^@/, "")
-  updateCachedNames(username, model);
-
-  const search = cachedNames.has(username)
-    ? Promise.resolve(cachedNames.get(username))
-    : searchUsername(username);
-
-  const fullName = await search;
-
-  if (fullName) {
-    domNode.dataset.originalMention = username;
-    domNode.innerText = `@${fullName}`;
-    domNode.classList.add("mention-fullname");
-  }
-}
-
-export default apiInitializer("0.8", (api) => {
-  if (!settings.show_fullname_in_mentions) return;
-
+function updateCookedMentions(api) {
   api.decorateCookedElement((element, helper) => {
-    const selector = settings.show_fullname_for_groups ? "a.mention,a.mention-group" : "a.mention";
+    const selector = settings.show_fullname_for_groups
+      ? "a.mention,a.mention-group"
+      : "a.mention";
     const mentions = element.querySelectorAll(selector);
 
-    mentions.forEach((domNode) => {
-      if (domNode.dataset.originalMention) {
+    mentions.forEach((domElement) => {
+      if (domElement.dataset.originalMention) {
         // the element is already changed
         return;
       }
 
-      const username = domNode.innerText;
-      updateMention(domNode, username, helper?.getModel());
+      const username = domElement.innerText;
+      updateMentionElement(domElement, username, helper?.getModel());
     });
-  }, {
-    id: "show-named-mentions",
   });
+}
 
+function patchCardComponents(api) {
   const cardComponents = ["component:user-card-contents"];
   if (settings.show_fullname_for_groups) {
     cardComponents.push("component:group-card-contents");
@@ -110,7 +56,11 @@ export default apiInitializer("0.8", (api) => {
         // https://github.com/discourse/discourse/blob/main/app/assets/javascripts/discourse/app/mixins/card-contents-base.js#L132
 
         if (this.avatarSelector) {
-          let matched = this._showCardOnClick(event, this.avatarSelector, (el) => el.dataset[this.avatarDataAttrKey]);
+          let matched = this._showCardOnClick(
+            event,
+            this.avatarSelector,
+            (el) => el.dataset[this.avatarDataAttrKey],
+          );
 
           if (matched) {
             return; // Don't need to check for mention click; it's an avatar click
@@ -127,4 +77,4 @@ export default apiInitializer("0.8", (api) => {
       },
     });
   });
-});
+}
