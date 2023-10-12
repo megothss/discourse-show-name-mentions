@@ -5,7 +5,8 @@ const cachedNames = new Map();
 let pendingSearch;
 
 export async function updateMentionElement(domElement, mention, model) {
-  const username = mention.toLowerCase().replace(/^@/, "");
+  const originalUsername = mention.replace(/^@/, "");
+  const username = originalUsername.toLowerCase();
   updateCachedNames(username, model);
 
   const search = cachedNames.has(username)
@@ -15,8 +16,8 @@ export async function updateMentionElement(domElement, mention, model) {
   const fullName = await search;
 
   if (fullName) {
-    domElement.dataset.originalMention = username;
-    domElement.innerText = `@${fullName}`;
+    domElement.dataset.originalMention = mention;
+    domElement.innerText = renderMention(fullName, originalUsername);
     domElement.classList.add("mention-fullname");
   }
 }
@@ -78,4 +79,14 @@ async function deferSearch(username) {
 
   // the call to searchUsername will use the existing pending promise and filter the results
   return await searchUsername(username);
+}
+
+function renderMention(name, username) {
+  let template = settings.render_template;
+
+  if (settings.render_template?.indexOf("{{name}}") === -1) {
+    template = "@{{name}}";
+  }
+
+  return template.replace("{{name}}", name).replace("{{username}}", username);
 }
