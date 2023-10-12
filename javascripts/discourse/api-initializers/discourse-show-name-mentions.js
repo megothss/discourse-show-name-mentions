@@ -5,7 +5,7 @@ import { updateMentionElement } from "../lib/update-dom-mention";
 export default {
   name: "discourse-show-name-mentions",
 
-  initialize(container, app) {
+  initialize(container) {
     const siteSettings = container.lookup("service:site-settings");
 
     if (!settings.show_fullname_in_mentions || !siteSettings.enable_names) {

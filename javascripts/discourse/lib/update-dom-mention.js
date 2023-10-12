@@ -1,3 +1,4 @@
+import { Promise } from "rsvp";
 import { ajax } from "discourse/lib/ajax";
 
 const cachedNames = new Map();
@@ -21,12 +22,12 @@ export async function updateMentionElement(domElement, mention, model) {
 }
 
 function updateCachedNames(username, model) {
-  const user = model?.mentioned_users?.find(
+  const mentionedUser = model?.mentioned_users?.find(
     (user) => user.username.toLowerCase() === username,
   );
 
-  if (user) {
-    cachedNames.set(username, user.name);
+  if (mentionedUser) {
+    cachedNames.set(username, mentionedUser.name);
   }
 }
 
