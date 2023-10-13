@@ -1,5 +1,6 @@
 import { bind } from "discourse-common/utils/decorators";
 import { withPluginApi } from "discourse/lib/plugin-api";
+import { addTextDecorateCallback } from "discourse/lib/to-markdown";
 import { updateMentionElement } from "../lib/update-dom-mention";
 
 export default {
@@ -15,6 +16,7 @@ export default {
     withPluginApi("0.8", (api) => {
       updateCookedMentions(api);
       patchCardComponents(api);
+      addConversionToMarkdown();
     });
   },
 };
@@ -76,5 +78,18 @@ function patchCardComponents(api) {
         });
       },
     });
+  });
+}
+
+function addConversionToMarkdown() {
+  addTextDecorateCallback(function () {
+    if (
+      this?.parent?.attributes?.class?.includes(
+        "discourse-show-name-mentions",
+      ) &&
+      this?.parent?.attributes?.["data-original-mention"]
+    ) {
+      return this.parent.attributes["data-original-mention"];
+    }
   });
 }

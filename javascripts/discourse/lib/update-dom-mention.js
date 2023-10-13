@@ -18,7 +18,10 @@ export async function updateMentionElement(domElement, mention, model) {
   if (fullName) {
     domElement.dataset.originalMention = mention;
     domElement.innerText = renderMention(fullName, originalUsername);
-    domElement.classList.add("mention-fullname");
+    domElement.classList.add(
+      "mention-fullname",
+      "discourse-show-name-mentions",
+    );
   }
 }
 
