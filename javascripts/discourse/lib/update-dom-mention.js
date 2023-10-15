@@ -36,12 +36,10 @@ function updateCachedNames(username, model) {
 }
 
 async function searchUsername(username) {
-  const pending = pendingSearch;
-
-  if (pending && pending.usernames.size <= 50) {
+  if (pendingSearch?.usernames.size <= 50) {
     //only 50 usernames can be searched at once
-    pending.usernames.add(username);
-    const results = await pending.search;
+    pendingSearch.usernames.add(username);
+    const results = await pendingSearch.search;
 
     // tests if the search performed included the desired username to prevent  from a possible race condition with
     // the timeout in deferred search
@@ -61,10 +59,12 @@ async function searchUsername(username) {
 }
 
 async function deferSearch(username) {
+  const usernamesList = new Set([username]);
+
   pendingSearch = {
     search: new Promise((resolve) => {
       setTimeout(async () => {
-        const searchedUsernames = Array.from(pendingSearch.usernames);
+        const searchedUsernames = Array.from(usernamesList);
         pendingSearch = null;
 
         const data = await ajax("/u/search/users.json", {
@@ -77,7 +77,7 @@ async function deferSearch(username) {
         resolve({ searchedUsernames, data });
       }, 20);
     }),
-    usernames: new Set([username]),
+    usernames: usernamesList,
   };
 
   // the call to searchUsername will use the existing pending promise and filter the results
