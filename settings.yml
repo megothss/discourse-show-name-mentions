@@ -2,4 +2,21 @@ show_fullname_in_mentions:
   default: true
   description:
     en: "If enabled @mentions will show the @fullname instead of the @username"
-    pt_BR: "Se ativado @mencoes irá exibir @nomecompleto ao invés de @usuario"
+    pt_BR: "Se ativado @mencoes exibirá @nomecompleto ao invés de @usuario"
+show_fullname_for_groups:
+  default: true
+  description:
+    en: "If enabled group @mentions will also show the @fullname instead of the @groupname"
+    pt_BR: "Se ativado @mencoes de grupos também exibirão @nomecompleto ao invés de @grupo"
+render_template:
+  default: "@{{name}}"
+  description:
+    en: |
+      Mention rendering template. 
+      You must use {{name}} where you want the name to be replaced, 
+      the use of {{username}} is optional if you want to also include the username.
+
+    pt_BR: |
+      Modelo para renderizar a menção.
+      Você deve usar {{name}} onde o nome deve ser substituído,
+      o uso de {{username}} é opcional se também desejar incluir o nome de usuário.
