@@ -45,8 +45,12 @@ async function searchUsername(username) {
     // the timeout in deferred search
     if (results.searchedUsernames.indexOf(username) > -1) {
       const fullName =
-        results.data.users?.find((item) => item.username === username)?.name ||
-        results.data.groups?.find((item) => item.name === username)?.full_name;
+        results.data.users?.find(
+          (item) => item.username.toLowerCase() === username,
+        )?.name ||
+        results.data.groups?.find(
+          (item) => item.name.toLowerCase() === username,
+        )?.full_name;
 
       cachedNames.set(username, fullName);
 
